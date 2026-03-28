@@ -24,51 +24,50 @@ jobs:
           cp build/spade.sv src/project.sv
 
       - name: Build GDS
-        uses: TinyTapeout/tt-gds-action@ttihp26a
+        uses: TinyTapeout/tt-gds-action@ihp-cmos5l
         with:
-          pdk: ihp-sg13g2
-          librelane-version: 3.0.0.dev44
+          pdk: ihp-sg13cmos5l
 
   precheck:
     needs: gds
     runs-on: ubuntu-24.04
     steps:
       - name: Run Tiny Tapeout Precheck
-        uses: TinyTapeout/tt-gds-action/precheck@ttihp26a
+        uses: TinyTapeout/tt-gds-action/precheck@ihp-cmos5l
 
-  gl_test:
-    needs: gds
-    runs-on: ubuntu-24.04
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
+  # gl_test:
+  #   needs: gds
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: checkout repo
+  #       uses: actions/checkout@v6
+  #       with:
+  #         submodules: recursive
 
-      - name: Setup Swim
-        run: |
-          wget https://gitlab.com/api/v4/projects/33589000/jobs/artifacts/main/download?job=build:static -O swim.zip
-          unzip swim.zip
+  #     - name: Setup Swim
+  #       run: |
+  #         wget https://gitlab.com/api/v4/projects/33589000/jobs/artifacts/main/download?job=build:static -O swim.zip
+  #         unzip swim.zip
 
-      - name: GL test setup
-        uses: TinyTapeout/tt-gds-action/gl_test@ttihp26a
+  #     - name: GL test setup
+  #       uses: TinyTapeout/tt-gds-action/gl_test@ttihp26a
 
-      - name: Patch gate_level_netlist.v
-        run: |
-          pip install pyyaml
-          python3 patch_gate_level.py
+  #     - name: Patch gate_level_netlist.v
+  #       run: |
+  #         pip install pyyaml
+  #         python3 patch_gate_level.py
 
-      - name: GL test
-        run: |
-          ./swim test --override-verilog test/gate_sim_defines.v --override-verilog ${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_io/verilog/sg13g2_io.v --override-verilog ${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_stdcell/verilog/sg13g2_stdcell.v --override-verilog test/patched.v gatelevel
+  #     - name: GL test
+  #       run: |
+  #         ./swim test --override-verilog test/gate_sim_defines.v --override-verilog ${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_io/verilog/sg13g2_io.v --override-verilog ${PDK_ROOT}/ihp-sg13g2/libs.ref/sg13g2_stdcell/verilog/sg13g2_stdcell.v --override-verilog test/patched.v gatelevel
 
-      - name: upload waveform and test results
-        if: success() || failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: |
-            build/**/*.fst
+  #     - name: upload waveform and test results
+  #       if: success() || failure()
+  #       uses: actions/upload-artifact@v7
+  #       with:
+  #         name: test-results
+  #         path: |
+  #           build/**/*.fst
 
   viewer:
     needs: gds
@@ -77,4 +76,4 @@ jobs:
       pages: write # to deploy to Pages
       id-token: write # to verify the deployment originates from an appropriate source
     steps:
-      - uses: TinyTapeout/tt-gds-action/viewer@ttihp26a
+      - uses: TinyTapeout/tt-gds-action/viewer@ihp-cmos5l
