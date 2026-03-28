@@ -1,0 +1,61 @@
+/// Horizontal and vertical VGA timings.
+pub struct Timings<#uint N> {
+    x: Timing<N>,
+    y: Timing<N>,
+}
+
+/// The VGA timings in one direction.
+pub struct Timing<#uint N> {
+    blank_start: uint<N>,
+    sync_start: uint<N>,
+    sync_end: uint<N>,
+    blank_end: uint<N>,
+}
+
+impl<#uint N> Timings<N> {
+    /// Generates the `Counters` for these timings.
+    entity counters(self, clk: clock) -> Counters<N> {
+        reg(clk) (x, y) initial((0, 0)) =
+            if x != trunc(self.x.blank_end - 1) { (trunc(x + 1), y) }
+            else if y != trunc(self.y.blank_end - 1) { (0, trunc(y + 1)) }
+            else { (0, 0) };
+
+        let hsync = x >= self.x.sync_start && x < self.x.sync_end;
+        let vsync = y >= self.y.sync_start && y < self.y.sync_end;
+        let hblank = x >= self.x.blank_start;
+        let vblank = y >= self.y.blank_start;
+
+        Counters$(x, y, hsync, vsync, hblank, vblank)
+    }
+}
+
+/// The X and Y positions of the beam, including the control signals.
+pub struct Counters<#uint N> {
+    x: uint<N>,
+    y: uint<N>,
+    hsync: bool,
+    vsync: bool,
+    hblank: bool,
+    vblank: bool,
+}
+
+impl<#uint N> Counters<N> {
+    /// Returns the VGA signals for this pixel when painted with the specified
+    /// color.
+    fn with_color(self, r: uint<8>, g: uint<8>, b: uint<8>) -> Signals {
+        let Counters$(x, y, hsync, vsync, hblank, vblank) = self;
+        Signals$(r, g, b, hsync, vsync, hblank, vblank)
+    }
+}
+
+/// The VGA signals.
+pub struct Signals {
+    r: uint<8>,
+    g: uint<8>,
+    b: uint<8>,
+    hsync: bool,
+    vsync: bool,
+    hblank: bool,
+    vblank: bool,
+}
+
