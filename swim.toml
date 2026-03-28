@@ -1,1 +1,4 @@
 name = "ttsky_verilog_template"
+
+[libraries]
+dvi.path = "./dvi"

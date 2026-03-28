@@ -1,18 +1,70 @@
 use std::io::rising_edge;
 use std::cdc::sync2_bool;
 
-entity design(clk: clock, rst: bool, ui_in: [bool; 8]) -> uint<8> {
-    let up = inst rising_edge(clk, inst sync2_bool(clk, ui_in[0]));
-    let down = inst rising_edge(clk, inst sync2_bool(clk, ui_in[1]));
+use dvi::vga::Timings;
+use dvi::vga::Timing;
 
-    reg(clk) value reset(rst: 0) = if up {
-        value +. 1
-    } else if down {
-        value -. 1
-    } else {
-        value
-    };
-    value
+impl<T, #uint N> [T; N] {
+    fn len(self) -> uint<{uint::bits_for(N)}> {
+        N
+    }
+}
+
+
+pipeline(1) design(clk: clock, rst: bool, ui_in: [bool; 8]) -> [bool; 8] {
+    let H_DISPLAY       = 640; // horizontal display width
+    let H_BACK          =  48; // horizontal left border (back porch)
+    let H_FRONT         =  16; // horizontal right border (front porch)
+    let H_SYNC          =  96; // horizontal sync width
+
+    let V_DISPLAY       = 480; // vertical display height
+    let V_TOP           =  33; // vertical top border
+    let V_BOTTOM        =  10; // vertical bottom border
+    let V_SYNC          =   2; // vertical sync # lines
+
+    let H_SYNC_START    = H_DISPLAY +. H_FRONT;
+    let H_SYNC_END      = H_DISPLAY +. H_FRONT +. H_SYNC -. 1;
+    let H_MAX           = H_DISPLAY +. H_BACK +. H_FRONT +. H_SYNC -. 1;
+    let V_SYNC_START    = V_DISPLAY +. V_BOTTOM;
+    let V_SYNC_END      = V_DISPLAY +. V_BOTTOM +. V_SYNC -. 1;
+    let V_MAX           = V_DISPLAY +. V_TOP +. V_BOTTOM +. V_SYNC -. 1;
+    let timings = Timings::<10>$(
+        x: Timing $(blank_start: H_DISPLAY, blank_end: H_MAX, sync_start: H_SYNC_START, sync_end: H_SYNC_END ),
+        y: Timing $(blank_start: V_DISPLAY, blank_end: V_MAX, sync_start: V_SYNC_START, sync_end: V_SYNC_END ),
+    );
+    
+    let counters = timings
+        .inst counters(clk);
+
+    let train = [
+        b".................................................................",
+        b"...###########################################################...",
+        b"..####.....######....######....#####....######....######....###..",
+        b".####.......####......####......###......####......####......###.",
+        b".####.......####......####......###......####......####......###.",
+        b"#################################################################",
+        b"...###...###........................................###...###....",
+        b".................................................................",
+    ];
+
+    let pixel = train[trunc(counters.y `std::ops::comb_div` zext(train.len()))][trunc(counters.x `std::ops::comb_div` zext(train[0].len()))];
+    
+reg;
+
+    let (r, g, b) = if pixel == b'.' {(255, 255, 255)} else {(0, 0, 0)};
+
+    let signals = counters.with_color(r, g, b);
+
+    [
+        signals.hsync,
+        signals.r.to_bits()[0],
+        signals.g.to_bits()[0],
+        signals.b.to_bits()[0],
+        signals.vsync,
+        signals.r.to_bits()[1],
+        signals.g.to_bits()[1],
+        signals.b.to_bits()[1],
+    ]
 }
 
 
@@ -30,7 +82,7 @@ entity tt_um_example(
     clk: clock,
     rst_n: bool,
     ui_in: [bool; 8],
-    uo_out: inv& uint<8>,
+    uo_out: inv& [bool; 8],
     uio_in: uint<8>,
     uio_out: inv& [bool; 8],
     uio_oe: inv& [bool; 8],
@@ -44,7 +96,7 @@ entity tt_um_example(
 
 
     // Put your code to generate the output here
-    let output = inst design(clk, rst, ui_in);
+    let output = inst(_) design(clk, rst, ui_in);
 
     set uo_out = &output;
 }

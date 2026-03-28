@@ -1,2 +1,5 @@
+[libraries.gowin_primitives]
+commit = "2de966082803fa3c782f0c016ee7b8c287864be4"
+
 [spade]
 commit = "a2d24eac9eb0d31cd5b4b45eda8c2401a7e92fdf"
